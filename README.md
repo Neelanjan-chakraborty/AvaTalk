@@ -1,5 +1,5 @@
-# AvaTalk
-GPT based 3D Talking Avatars
+#  ![95a89340-2e71-45f0-9af5-f211f0fd5244-3](https://github.com/user-attachments/assets/cf31599c-26b4-40cb-8e26-7d6179c9bc67) AvaTalk
+
 
 ```stl
 solid Exported from Blender-3.6.15
@@ -10728,5 +10728,37 @@ vertex 1.342750 0.160721 0.359790
 endloop
 endfacet
 endsolid Exported from Blender-3.6.15
-
 ```
+
+
+## Installation Instructions
+
+### Prerequisites
+- Node.js 
+- Yarn 
+
+### Steps
+
+1. **Clone the repository:**
+    ```bash
+    git clone https://github.com/Neelanjan-chakraborty/AvaTalk.git
+    cd AvaTalk
+    ```
+
+2. **Install dependencies:**
+    ```bash
+    yarn install
+    ```
+
+3. **Start the development server:**
+    ```bash
+    yarn start
+    ```
+
+4. **Build the project for production:**
+    ```bash
+    yarn build
+    ```
+
+
+
