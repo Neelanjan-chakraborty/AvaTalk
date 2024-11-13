@@ -9,7 +9,10 @@
     "@testing-library/react": "^13.3.0",
     "@testing-library/user-event": "^13.5.0",
     "axios": "^0.27.2",
+    "framer-motion": "^11.11.15",
+    "leva": "^0.9.35",
     "lodash": "^4.17.21",
+    "lucide-react": "^0.456.0",
     "microsoft-cognitiveservices-speech-sdk": "^1.23.0",
     "react": "^18.2.0",
     "react-async-hook": "^4.0.0",
@@ -42,5 +45,8 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.14"
   }
 }

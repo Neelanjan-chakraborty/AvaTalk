@@ -15,16 +15,19 @@ function modifiedKey(key) {
     return key
   }
 
-  if (key.endsWith("Right")) {
-    return key.replace("Right", "_R");
-  }
-  if (key.endsWith("Left")) {
-    return key.replace("Left", "_L");
-  }
+  // if (key.endsWith("Right")) {
+  //   return key.replace("Right", "_R");
+  // }
+  // if (key.endsWith("Left")) {
+  //   return key.replace("Left", "_L");
+  // }
   return key;
 }
 
-function createAnimation (recordedData, morphTargetDictionary, bodyPart) {
+function createAnimation (recordedData, morphTargetDictionary, bodyPart ,blink) {
+  
+
+  // console.log("----Blink:", blink)
 
   // console.log("----morphTargetDictionary", morphTargetDictionary)
 
@@ -51,7 +54,7 @@ function createAnimation (recordedData, morphTargetDictionary, bodyPart) {
 
     })
 
-    // console.log("-----animation", animation);
+    console.log("-----animation", animation);
 
     let tracks = []
 

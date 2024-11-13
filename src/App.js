@@ -1,395 +1,258 @@
-import React, { Suspense, useEffect, useRef, useState, useMemo } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
-import { useGLTF, useTexture, Loader, Environment, useFBX, useAnimations, OrthographicCamera } from '@react-three/drei';
-import { MeshStandardMaterial } from 'three/src/materials/MeshStandardMaterial';
-
-import { LinearEncoding, sRGBEncoding } from 'three/src/constants';
-import { LineBasicMaterial, MeshPhysicalMaterial, Vector2 } from 'three';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Environment, Loader, OrthographicCamera, Sphere, Stars, useGLTF, useAnimations } from '@react-three/drei';
+import { MessageCircle, Send, UserCircle, Bot, Volume2, VolumeX, Maximize2, Minimize2 } from 'lucide-react';
 import ReactAudioPlayer from 'react-audio-player';
-
-import createAnimation from './converter';
-import blinkData from './blendDataBlink.json';
-
-import * as THREE from 'three';
-import axios from 'axios';
-const _ = require('lodash');
-
-const host = 'http://localhost:5000'
-
-function Avatar({ avatar_url, speak, setSpeak, text, setAudioSource, playing }) {
-
-  let gltf = useGLTF(avatar_url);
-  let morphTargetDictionaryBody = null;
-  let morphTargetDictionaryLowerTeeth = null;
-
-  const [ 
-    bodyTexture, 
-    eyesTexture, 
-    teethTexture, 
-    bodySpecularTexture, 
-    bodyRoughnessTexture, 
-    bodyNormalTexture,
-    teethNormalTexture,
-    // teethSpecularTexture,
-    hairTexture,
-    tshirtDiffuseTexture,
-    tshirtNormalTexture,
-    tshirtRoughnessTexture,
-    hairAlphaTexture,
-    hairNormalTexture,
-    hairRoughnessTexture,
-    ] = useTexture([
-    "/images/body.webp",
-    "/images/eyes.webp",
-    "/images/teeth_diffuse.webp",
-    "/images/body_specular.webp",
-    "/images/body_roughness.webp",
-    "/images/body_normal.webp",
-    "/images/teeth_normal.webp",
-    // "/images/teeth_specular.webp",
-    "/images/h_color.webp",
-    "/images/tshirt_diffuse.webp",
-    "/images/tshirt_normal.webp",
-    "/images/tshirt_roughness.webp",
-    "/images/h_alpha.webp",
-    "/images/h_normal.webp",
-    "/images/h_roughness.webp",
-  ]);
-
-  _.each([
-    bodyTexture, 
-    eyesTexture, 
-    teethTexture, 
-    teethNormalTexture, 
-    bodySpecularTexture, 
-    bodyRoughnessTexture, 
-    bodyNormalTexture, 
-    tshirtDiffuseTexture, 
-    tshirtNormalTexture, 
-    tshirtRoughnessTexture,
-    hairAlphaTexture,
-    hairNormalTexture,
-    hairRoughnessTexture
-  ], t => {
-    t.encoding = sRGBEncoding;
-    t.flipY = false;
-  });
-
-  bodyNormalTexture.encoding = LinearEncoding;
-  tshirtNormalTexture.encoding = LinearEncoding;
-  teethNormalTexture.encoding = LinearEncoding;
-  hairNormalTexture.encoding = LinearEncoding;
-
-  
-  gltf.scene.traverse(node => {
-
-
-    if(node.type === 'Mesh' || node.type === 'LineSegments' || node.type === 'SkinnedMesh') {
-
-      node.castShadow = true;
-      node.receiveShadow = true;
-      node.frustumCulled = false;
-
-    
-      if (node.name.includes("Body")) {
-
-        node.castShadow = true;
-        node.receiveShadow = true;
-
-        node.material = new MeshPhysicalMaterial();
-        node.material.map = bodyTexture;
-        // node.material.shininess = 60;
-        node.material.roughness = 1.7;
-
-        // node.material.specularMap = bodySpecularTexture;
-        node.material.roughnessMap = bodyRoughnessTexture;
-        node.material.normalMap = bodyNormalTexture;
-        node.material.normalScale = new Vector2(0.6, 0.6);
-
-        morphTargetDictionaryBody = node.morphTargetDictionary;
-
-        node.material.envMapIntensity = 0.8;
-        // node.material.visible = false;
-
-      }
-
-      if (node.name.includes("Eyes")) {
-        node.material = new MeshStandardMaterial();
-        node.material.map = eyesTexture;
-        // node.material.shininess = 100;
-        node.material.roughness = 0.1;
-        node.material.envMapIntensity = 0.5;
-
-
-      }
-
-      if (node.name.includes("Brows")) {
-        node.material = new LineBasicMaterial({color: 0x000000});
-        node.material.linewidth = 1;
-        node.material.opacity = 0.5;
-        node.material.transparent = true;
-        node.visible = false;
-      }
-
-      if (node.name.includes("Teeth")) {
-
-        node.receiveShadow = true;
-        node.castShadow = true;
-        node.material = new MeshStandardMaterial();
-        node.material.roughness = 0.1;
-        node.material.map = teethTexture;
-        node.material.normalMap = teethNormalTexture;
-
-        node.material.envMapIntensity = 0.7;
-
-
-      }
-
-      if (node.name.includes("Hair")) {
-        node.material = new MeshStandardMaterial();
-        node.material.map = hairTexture;
-        node.material.alphaMap = hairAlphaTexture;
-        node.material.normalMap = hairNormalTexture;
-        node.material.roughnessMap = hairRoughnessTexture;
-        
-        node.material.transparent = true;
-        node.material.depthWrite = false;
-        node.material.side = 2;
-        node.material.color.setHex(0x000000);
-        
-        node.material.envMapIntensity = 0.3;
-
-      
-      }
-
-      if (node.name.includes("TSHIRT")) {
-        node.material = new MeshStandardMaterial();
-
-        node.material.map = tshirtDiffuseTexture;
-        node.material.roughnessMap = tshirtRoughnessTexture;
-        node.material.normalMap = tshirtNormalTexture;
-        node.material.color.setHex(0xffffff);
-
-        node.material.envMapIntensity = 0.5;
-
-
-      }
-
-      if (node.name.includes("TeethLower")) {
-        morphTargetDictionaryLowerTeeth = node.morphTargetDictionary;
-      }
-
-    }
-
-  });
-
-  const [clips, setClips] = useState([]);
-  const mixer = useMemo(() => new THREE.AnimationMixer(gltf.scene), []);
-
-  useEffect(() => {
-
-    if (speak === false)
-      return;
-
-    makeSpeech(text)
-    .then( response => {
-
-      let {blendData, filename}= response.data;
-
-      let newClips = [ 
-        createAnimation(blendData, morphTargetDictionaryBody, 'HG_Body'), 
-        createAnimation(blendData, morphTargetDictionaryLowerTeeth, 'HG_TeethLower') ];
-
-      filename = host + filename;
-        
-      setClips(newClips);
-      setAudioSource(filename);
-
-    })
-    .catch(err => {
-      console.error(err);
-      setSpeak(false);
-
-    })
-
-  }, [speak]);
-
-  let idleFbx = useFBX('/idle.fbx');
-  let { clips: idleClips } = useAnimations(idleFbx.animations);
-
-  idleClips[0].tracks = _.filter(idleClips[0].tracks, track => {
-    return track.name.includes("Head") || track.name.includes("Neck") || track.name.includes("Spine2");
-  });
-
-  idleClips[0].tracks = _.map(idleClips[0].tracks, track => {
-
-    if (track.name.includes("Head")) {
-      track.name = "head.quaternion";
-    }
-
-    if (track.name.includes("Neck")) {
-      track.name = "neck.quaternion";
-    }
-
-    if (track.name.includes("Spine")) {
-      track.name = "spine2.quaternion";
-    }
-
-    return track;
-
-  });
-
-  useEffect(() => {
-
-    let idleClipAction = mixer.clipAction(idleClips[0]);
-    idleClipAction.play();
-
-    let blinkClip = createAnimation(blinkData, morphTargetDictionaryBody, 'HG_Body');
-    let blinkAction = mixer.clipAction(blinkClip);
-    blinkAction.play();
-
-
-  }, []);
-
-  // Play animation clips when available
-  useEffect(() => {
-
-    if (playing === false)
-      return;
-    
-    _.each(clips, clip => {
-        let clipAction = mixer.clipAction(clip);
-        clipAction.setLoop(THREE.LoopOnce);
-        clipAction.play();
-
-    });
-
-  }, [playing]);
-
-  
-  useFrame((state, delta) => {
-    mixer.update(delta);
-  });
-
-
+import { Avatar } from './components/Avatar';
+import { Bg } from './components/Background';
+import { OrbitControls} from '@react-three/drei';
+
+
+const ResponsiveAvatarWrapper = ({ 
+  avatar_url, 
+  speak, 
+  setSpeak, 
+  text,
+  setText, // Pass setText as a prop 
+  setAudioSource, 
+  playing 
+}) => {
   return (
-    <group name="avatar">
-      <primitive object={gltf.scene} dispose={null} />
-    </group>
+    <div className="w-full h-full relative">
+     <Canvas
+        className="w-full h-full"
+        Camera={{ 
+          fov: 75, near: 0.1, far: 1000, position: [0, 0, 5] 
+        }}
+        shadows
+      >
+        {/* Lighting setup */}
+        <ambientLight intensity={0.5} />
+        <directionalLight 
+          position={[5, 5, 5]} 
+          intensity={1} 
+          castShadow 
+          shadow-mapSize-width={2048}
+          shadow-mapSize-height={2048}
+        />
+        <pointLight position={[-5, 5, -5]} intensity={0.5} />
+
+        {/* Background */}
+        <Bg />
+
+        {/* Avatar and controls */}
+        <Avatar
+          avatar_url={avatar_url}
+          speak={speak}
+          setSpeak={setSpeak}
+          text={text}
+          setText={setText}
+          setAudioSource={setAudioSource}
+          playing={playing}
+          animation="typingAnimation"
+        />
+        <OrbitControls
+          enablePan={false}
+          enableZoom={false}
+          enableRotate={true}
+          minDistance={0.5}
+          maxDistance={1}
+          rotation={[0, Math.PI / 2, Math.PI / 2]}
+          minPolarAngle={Math.PI / 3}
+          maxPolarAngle={Math.PI / 2}
+          minAzimuthAngle={-Math.PI /60} // Limit horizontal rotation
+          maxAzimuthAngle={Math.PI / 90}  // Limit horizontal rotation
+          target={[0, 1.5, 0]}
+          zoom0={100}
+          autoRotate={true}              // Enable auto rotation
+          autoRotateSpeed={0.5}          // Set rotation speed
+        />
+        <Environment preset="city" />
+      </Canvas>
+
+      {/* Optional overlay controls */}
+      <div className="absolute bottom-4 left-4 right-4 flex justify-center space-x-4">
+        <button 
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-colors duration-200"
+          onClick={() => setSpeak(!speak)}
+        >
+          {speak ? 'Stop' : 'Speak'}
+        </button>
+      </div>
+    </div>
   );
-}
+};
 
-
-function makeSpeech(text) {
-  return axios.post(host + '/talk', { text });
-}
-
-const STYLES = {
-  area: {position: 'absolute', bottom:'10px', left: '10px', zIndex: 500},
-  text: {margin: '0px', width:'300px', padding: '5px', background: 'none', color: '#ffffff', fontSize: '1.2em', border: 'none'},
-  speak: {padding: '10px', marginTop: '5px', display: 'block', color: '#FFFFFF', background: '#222222', border: 'None'},
-  area2: {position: 'absolute', top:'5px', right: '15px', zIndex: 500},
-  label: {color: '#777777', fontSize:'0.8em'}
-}
-
-function App() {
-
+const ChatApp = () => {
   const audioPlayer = useRef();
-
   const [speak, setSpeak] = useState(false);
-  const [text, setText] = useState("My name is Arwen. I'm a virtual human who can speak whatever you type here along with realistic facial movements.");
+  const [text, setText] = useState("");
   const [audioSource, setAudioSource] = useState(null);
   const [playing, setPlaying] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const messagesEndRef = useRef(null);
+  const [messages, setMessages] = useState([
+    {
+      type: 'assistant',
+      content: "Hi! I'm Arwen, a virtual human. Type your message and I'll speak it with realistic facial movements."
+    }
+  ]);
 
-  // End of play
-  function playerEnded(e) {
-    setAudioSource(null);
-    setSpeak(false);
-    setPlaying(false);
-  }
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  // Player is read
-  function playerReady(e) {
-    audioPlayer.current.audioEl.current.play();
-    setPlaying(true);
+  // const handleSubmit = (e) => {
+  //   e.preventDefault();
+  //   if (!text.trim()) return;
+  //   setMessages(prev => [...prev, { type: 'user', content: text }]);
+  //   setSpeak(true);
+  // };
 
-  }  
+  const ChatWindow = ({ message, type }) => (
+    <div className={`flex items-start space-x-2 ${type === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+      {type === 'assistant' && (
+        <div className="shrink-0">
+          <Bot className="w-6 h-6 text-blue-500" />
+        </div>
+      )}
+      <div className={`max-w-[80%] px-4 py-2 rounded-2xl ${
+        type === 'user'
+          ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+          : 'bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg text-gray-100'
+      }`}>
+        <p className="text-sm md:text-base">{message}</p>
+      </div>
+      {type === 'user' && (
+        <div className="shrink-0">
+          <UserCircle className="w-6 h-6 text-gray-400" />
+        </div>
+      )}
+    </div>
+  );
+
+  const InputField = ({ value, onChange, speak, disabled }) => (
+    <div className="flex space-x-2">
+      <input
+      type="text"
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className={`flex-1 bg-gray-700 bg-opacity-50 backdrop-filter backdrop-blur-lg text-white rounded-2xl px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+        disabled ? 'cursor-not-allowed opacity-50' : ''
+      }`}
+      placeholder="Type your message..."
+      maxLength={200}
+      disabled={disabled}
+      />
+    </div>
+  );
+
+  useEffect(() => {
+    if (text && text !== messages[messages.length - 1]?.content) {
+      setMessages(prev => [...prev, { type: 'assistant', content: text }]);
+    }
+  }, [text]);
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (!text.trim()) return;
+    const userMessage = text;
+    setMessages(prev => [...prev, { type: 'user', content: userMessage }]);
+    setSpeak(true);
+  };
 
   return (
-    <div className="full">
-      <div style={STYLES.area}>
-        <textarea rows={4} type="text" style={STYLES.text} value={text} onChange={(e) => setText(e.target.value.substring(0, 200))} />
-        <button onClick={() => setSpeak(true)} style={STYLES.speak}> { speak? 'Running...': 'Speak' }</button>
+    <div className="w-full h-screen bg-gray-900 flex flex-col">
+      <div className="flex flex-col md:flex-row w-full h-full">
+        <div className={`relative ${isFullscreen ? 'w-full h-full' : 'w-full md:w-3/5 h-1/2 md:h-full'} bg-gray-800 rounded-3xl shadow-2xl`}>
+          <div className="absolute top-0 left-0 right-0 z-10 bg-gray-900 border-b border-gray-700 rounded-t-3xl">
+            <div className="flex items-center justify-between p-4">
+              <div className="flex items-center space-x-2">
+                <Bot className="w-5 h-5 text-blue-500" />
+                <span className="text-white font-medium">Virtual Assistant</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <button 
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="text-gray-300 hover:text-white"
+                >
+                  {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+                <button 
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="text-gray-300 hover:text-white"
+                >
+                  {isFullscreen ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+          </div>
 
+          <ResponsiveAvatarWrapper 
+            avatar_url="/model1.glb"
+            speak={speak}
+            setSpeak={setSpeak}
+            text={text}
+            setText={setText}
+            setAudioSource={setAudioSource}
+            playing={playing}
+          />
+        </div>
+
+        {!isFullscreen && (
+          <div className="w-full md:w-2/5 h-1/2 md:h-full flex flex-col bg-gray-800 rounded-3xl shadow-2xl">
+            <div className="p-4 bg-gray-900 border-b border-gray-700 rounded-t-3xl">
+              <div className="flex items-center space-x-2">
+                <MessageCircle className="w-5 h-5 text-blue-500" />
+                <h2 className="text-lg font-medium text-white">Chat History</h2>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-800 rounded-b-3xl">
+              {messages.map((message, index) => (
+                <ChatWindow key={index} message={message.content} type={message.type} />
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-4 bg-gray-900 border-t border-gray-700 rounded-b-3xl">
+              <InputField
+                value={text}
+                onChange={setText}
+                speak={speak}
+                disabled={speak}
+              />
+              <button
+                type="submit"
+                disabled={speak}
+                className={`px-4 py-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white flex items-center space-x-2 ${
+                  speak ? 'opacity-50' : 'hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600'
+                }`}
+              >
+                <Send className="w-4 h-4" />
+                <span className="hidden sm:inline">{speak ? 'Speaking...' : 'Send'}</span>
+              </button>
+            </form>
+          </div>
+        )}
       </div>
 
       <ReactAudioPlayer
         src={audioSource}
         ref={audioPlayer}
-        onEnded={playerEnded}
-        onCanPlayThrough={playerReady}
-        
+        onEnded={() => {
+          setAudioSource(null);
+          setSpeak(false);
+          setPlaying(false);
+        }}
+        onCanPlayThrough={() => {
+          audioPlayer.current.audioEl.current.play();
+          setPlaying(true);
+        }}
       />
-      
-      {/* <Stats /> */}
-    <Canvas dpr={2} onCreated={(ctx) => {
-        ctx.gl.physicallyCorrectLights = true;
-      }}>
+    </div>
+  );
+};
 
-      <OrthographicCamera 
-      makeDefault
-      zoom={2000}
-      position={[0, 1.65, 1]}
-      />
-
-      {/* <OrbitControls
-        target={[0, 1.65, 0]}
-      /> */}
-
-      <Suspense fallback={null}>
-        <Environment background={false} files="/images/photo_studio_loft_hall_1k.hdr" />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <Bg />
-      </Suspense>
-
-      <Suspense fallback={null}>
-
-
-
-          <Avatar 
-            avatar_url="/model.glb" 
-            speak={speak} 
-            setSpeak={setSpeak}
-            text={text}
-            setAudioSource={setAudioSource}
-            playing={playing}
-            />
-
-      
-      </Suspense>
-
-  
-
-  </Canvas>
-  <Loader dataInterpolation={(p) => `Loading... please wait`}  />
-  </div>
-  )
-}
-
-function Bg() {
-  
-  const texture = useTexture('/images/bg.webp');
-
-  return(
-    <mesh position={[0, 1.5, -2]} scale={[0.8, 0.8, 0.8]}>
-      <planeBufferGeometry />
-      <meshBasicMaterial map={texture} />
-
-    </mesh>
-  )
-
-}
-
-export default App;
+export default ChatApp;
